@@ -144,7 +144,7 @@ List everything the schema alone cannot answer. This is a structured list of que
 
 4. **Preserve precision.** When documenting types, include the full type declaration (e.g., `decimal(18,4)`, not just `decimal`). When documenting defaults, include the exact expression.
 
-5. **Handle multiple databases.** If extraction results come from more than one database, produce a separate set of reference documents per database, each in its own subdirectory. Add a top-level `databases.md` that lists them and describes any cross-database references you can identify.
+5. **Single-database dispatch.** This plugin dispatches one database at a time. You will receive extraction files for exactly one database. Generate one set of reference documents in the output directory for that database. Ignore this rule in single-database invocations.
 
 6. **Row counts inform classification.** A table with 12 rows is almost certainly a lookup table. A table with 50 million rows is transactional or logging. Use row counts as a strong signal but not the only one.
 

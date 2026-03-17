@@ -32,7 +32,7 @@ wc -c references/databases/{DB_NAME}/*.txt | tail -1
 ```
 
 - **<50KB total**: Use single-pass generation (this section)
-- **>=50KB total**: Use fan-out generation (see Phase 4 addition to this skill)
+- **>=50KB total**: Use fan-out generation (see Fan-Out Path section below). **Fan-out is not yet implemented — proceeding with single-pass. Quality may be lower for very large databases. Notify the user of this limitation before dispatching the agent.**
 
 Report to the user: "Corpus size: {size}. Using {single-pass|fan-out} generation."
 
@@ -47,6 +47,8 @@ Dispatch a single agent to generate all 8 output targets:
 <parameter name="description">Generate reference docs for {DB_NAME}</parameter>
 <parameter name="subagent_type">ed3d-basic-agents:opus-general-purpose</parameter>
 <parameter name="prompt">
+Your working directory is the repo root. Use absolute paths when reading input files, and relative-from-root paths for output.
+
 You are generating reference documentation for the {DB_NAME} database.
 
 ## Your Job Specification
