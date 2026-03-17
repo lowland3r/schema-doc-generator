@@ -29,14 +29,14 @@ If any required value is missing, prompt for it. Do NOT error out or guess.
 ## Step 2: Detect Runtime Environment
 
 Check the user's platform:
-- Use Bash to run: `powershell -Command "Get-Module -ListAvailable dbatools" 2>/dev/null` or `pwsh -Command "Get-Module -ListAvailable dbatools" 2>/dev/null`
+- Use Bash to run: Try `pwsh` first, then fall back to `powershell`. Run: `pwsh -Command "Get-Module -ListAvailable dbatools" 2>/dev/null` or `powershell -Command "Get-Module -ListAvailable dbatools" 2>/dev/null`
 - If PowerShell + dbatools are available: use the **dbatools path**
 - If PowerShell is available but dbatools is not: suggest `Install-Module dbatools -Scope CurrentUser` and fall back to **sqlcmd path**
 - If PowerShell is not available: use the **sqlcmd path**
 
 ## Step 3: Create Target Directory
 
-Create the directory `references/databases/{DB_NAME}/` in the user's working directory. Create 17 empty placeholder files:
+Create the directory `references/databases/{DB_NAME}/` in the user's working directory. Create 17 empty placeholder files using the Write tool to create each file with empty content:
 
 | File | Content Section |
 |------|----------------|
@@ -72,7 +72,7 @@ Read the bundled SQL template from this skill's `templates/mssql.sql` file. Gene
 4. Filters sections containing a `SELECT` statement
 5. For each section, runs `Invoke-DbaQuery` and exports results via `Export-Csv -Delimiter '|' -NoTypeInformation -Encoding UTF8`
 6. Handles empty results by writing empty files
-7. Section 17 (lookup data) requires special handling: the dynamic SQL produces multiple result sets with `PRINT` delimiters — capture all output to `17_lookup_data.txt`
+7. Section 17 (lookup data) produces multiple result sets, each with a synthetic `_table_header` first column containing the table name. Invoke-DbaQuery captures these rows in the result set, which are then exported to `17_lookup_data.txt` with the header rows intact
 
 The generated script should follow the pattern established in the existing `Extract-Schema.ps1` but be parameterized instead of hardcoded:
 

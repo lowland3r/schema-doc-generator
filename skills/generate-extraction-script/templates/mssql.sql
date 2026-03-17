@@ -391,6 +391,7 @@ SELECT
     t.is_table_type
 FROM sys.types t
 INNER JOIN sys.schemas s            ON t.schema_id = s.schema_id
+-- base_type is NULL for table types (is_table_type=1); system_type_id=0 for table types
 LEFT JOIN sys.types bt              ON t.system_type_id = bt.user_type_id
 WHERE t.is_user_defined = 1
 ORDER BY s.name, t.name;
@@ -436,8 +437,8 @@ ORDER BY row_count DESC;
 -- Dynamically extracts all rows from tables with fewer than 100 rows.
 -- Uses row counts from sys.partitions to identify candidates, then
 -- builds and executes SELECT statements for each.
--- Output: one result set per lookup table, separated by a header row
--- containing the table name.
+-- Output: one result set per lookup table, with a synthetic first column
+-- containing the table name header, so all rows are captured by Invoke-DbaQuery.
 
 DECLARE @sql NVARCHAR(MAX) = N'';
 DECLARE @schema NVARCHAR(128), @table NVARCHAR(128), @rows BIGINT;
@@ -458,9 +459,11 @@ FETCH NEXT FROM lookup_cursor INTO @schema, @table, @rows;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    -- Print a delimiter line so the output can be split per-table
-    SET @sql = N'PRINT ''--- TABLE: ' + @schema + N'.' + @table + N' ---'';'
-             + N' SELECT * FROM ' + QUOTENAME(@schema) + N'.' + QUOTENAME(@table) + N';';
+    -- Use a synthetic first column as header row instead of PRINT, so Invoke-DbaQuery
+    -- captures it in the result set. This avoids issues with schema/table names
+    -- containing single quotes (which would break PRINT's string concatenation).
+    SET @sql = N'SELECT N''TABLE: ' + REPLACE(@schema, N'''', N'''''') + N'.' + REPLACE(@table, N'''', N'''''') + N''' AS _table_header, * FROM '
+             + QUOTENAME(@schema) + N'.' + QUOTENAME(@table) + N';';
     EXEC sp_executesql @sql;
     FETCH NEXT FROM lookup_cursor INTO @schema, @table, @rows;
 END
