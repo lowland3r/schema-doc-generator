@@ -106,25 +106,78 @@ Create the temporary working directory. Use a platform-appropriate temp path (`/
 mkdir -p /tmp/fanout-{DB_NAME}/workers /tmp/fanout-{DB_NAME}/critics
 ```
 
+On Windows, use:
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:TEMP\fanout-{DB_NAME}\workers","$env:TEMP\fanout-{DB_NAME}\critics"
+```
+
 ### Stage 2: Launch Workers (parallel)
 
-Read the job spec from `job-spec.md`. Launch both workers simultaneously using the Agent tool — issue both calls in a single message for parallel execution:
+Read the job spec from `job-spec.md`. Launch both workers simultaneously using the Agent tool — issue both calls in a single message for parallel execution.
 
-**W01 prompt template:**
-- Role: "You are Worker W01"
-- Segments: S01 (00_overview.md), S02 (01_type_reference.md), S03 (02_tables/ directory)
-- Instructions: Read all 17 input files. Follow the job spec. Generate only your assigned output documents.
-- Writing style: Activate `ed3d-house-style:writing-for-a-technical-audience` before generating output. Be concise, specific, and honest. No filler or AI writing patterns.
-- Output path: `docs/database_reference/{DB_NAME}/`
-- Report path: `/tmp/fanout-{DB_NAME}/workers/W01.md`
+**W01 invoke example:**
+```xml
+<invoke name="Agent">
+<parameter name="description">Generate reference docs for {DB_NAME}</parameter>
+<parameter name="subagent_type">ed3d-basic-agents:opus-general-purpose</parameter>
+<parameter name="run_in_background">true</parameter>
+<parameter name="prompt">
+You are Worker W01 for database {DB_NAME}.
 
-**W02 prompt template:**
-- Role: "You are Worker W02"
-- Segments: S04 (03_stored_procedures.md), S05 (04_views.md + 05_functions.md), S06 (06_business_logic.md + 07_annotations_needed.md)
-- Same input/output paths
-- Report path: `/tmp/fanout-{DB_NAME}/workers/W02.md`
+## Your Job Specification
+{contents of job-spec.md}
 
-Use `ed3d-basic-agents:opus-general-purpose` for both workers. Set `run_in_background: true`.
+## Input Files
+Read ALL of the following files before generating any output:
+{list all 17 file paths from references/databases/{DB_NAME}/}
+
+## Your Assigned Output Segments
+S01: Write docs/database_reference/{DB_NAME}/00_overview.md
+S02: Write docs/database_reference/{DB_NAME}/01_type_reference.md
+S03: Write all files in docs/database_reference/{DB_NAME}/02_tables/ (one file per domain)
+
+## Writing Style
+Activate the ed3d-house-style:writing-for-a-technical-audience skill. Apply it to all output.
+
+## Report
+When done, write your completion summary to /tmp/fanout-{DB_NAME}/workers/W01.md
+Include: segments completed, files written, and any gaps you encountered.
+</parameter>
+</invoke>
+```
+
+**W02 invoke example:**
+```xml
+<invoke name="Agent">
+<parameter name="description">Generate reference docs for {DB_NAME}</parameter>
+<parameter name="subagent_type">ed3d-basic-agents:opus-general-purpose</parameter>
+<parameter name="run_in_background">true</parameter>
+<parameter name="prompt">
+You are Worker W02 for database {DB_NAME}.
+
+## Your Job Specification
+{contents of job-spec.md}
+
+## Input Files
+Read ALL of the following files before generating any output:
+{list all 17 file paths from references/databases/{DB_NAME}/}
+
+## Your Assigned Output Segments
+S04: Write docs/database_reference/{DB_NAME}/03_stored_procedures.md
+S05: Write docs/database_reference/{DB_NAME}/04_views.md and 05_functions.md
+S06: Write docs/database_reference/{DB_NAME}/06_business_logic.md and 07_annotations_needed.md
+
+## Writing Style
+Activate the ed3d-house-style:writing-for-a-technical-audience skill. Apply it to all output.
+
+## Report
+When done, write your completion summary to /tmp/fanout-{DB_NAME}/workers/W02.md
+Include: segments completed, files written, and any gaps you encountered.
+</parameter>
+</invoke>
+```
+
+**Note:** Issue both Worker invokes in a single message to enable parallel execution. Both use `ed3d-basic-agents:opus-general-purpose` with `run_in_background: true`.
 
 ### Stage 3: Launch Critics (parallel, after workers)
 
@@ -137,7 +190,30 @@ After both workers complete, launch all 6 critics simultaneously. Each critic:
 
 Use `ed3d-basic-agents:sonnet-general-purpose` for all critics. Set `run_in_background: true`.
 
-**Optimization:** C03 only needs W01; C06 only needs W02. If one worker finishes first, launch its sole-dependency critics immediately.
+**C01 invoke example:**
+```xml
+<invoke name="Agent">
+<parameter name="description">Critic C01 review for {DB_NAME}</parameter>
+<parameter name="subagent_type">ed3d-basic-agents:sonnet-general-purpose</parameter>
+<parameter name="run_in_background">true</parameter>
+<parameter name="prompt">
+You are Critic C01 for database {DB_NAME}.
+
+## Your Review Segments
+Review these output documents: S01 (00_overview.md), S05 (04_views.md + 05_functions.md), S06 (06_business_logic.md + 07_annotations_needed.md)
+
+Read the relevant worker reports from /tmp/fanout-{DB_NAME}/workers/. Spot-check against the original source files in references/databases/{DB_NAME}/.
+
+Check writing quality against ed3d-house-style:writing-for-a-technical-audience principles.
+
+Write your structured review to /tmp/fanout-{DB_NAME}/critics/C01.md. For each issue: note the file, quote the problematic text, state the correction, and note whether you verified against source.
+</parameter>
+</invoke>
+```
+
+**Note:** Critics C02–C06 follow the same pattern with their assigned segments from `fanout-layout.md`. Issue all 6 critic invokes in a single message (or grouped by dependency as noted below).
+
+**Optimization:** C03 only needs W01; C06 only needs W02. If one worker finishes first, launch its sole-dependency critics immediately. (This is optional — waiting for both workers before launching all 6 critics is also correct.)
 
 ### Stage 4: Summarizer (sequential, after all critics)
 
