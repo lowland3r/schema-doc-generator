@@ -12,6 +12,7 @@ Walk through the complete database schema documentation process: extraction scri
 
 Gather database details from the user if not already provided:
 - Database engine (currently MSSQL only)
+  (If the user names an unsupported engine, the generate-extraction-script skill will handle it at Stage 2.)
 - Server/instance name
 - Database name
 
@@ -84,7 +85,7 @@ After generation completes, provide a final summary:
 3. Suggest next steps:
    - "Review `07_annotations_needed.md` and fill in answers based on your domain knowledge"
    - "The reference docs can be used immediately for querying and understanding the database"
-   - If fan-out was used: "A QA report is available at `/tmp/fanout-{DB_NAME}/final-report.md`"
+   - If fan-out was used: "A QA report was produced by the generation skill — the path was reported in the generation summary above."
 
 ## Multi-Database Awareness
 
