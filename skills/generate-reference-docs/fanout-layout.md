@@ -69,4 +69,6 @@ Fan-out uses a temporary directory for intermediate files:
 └── final-report.md  (QA summary)
 ```
 
+On Windows, replace `/tmp/` with `$env:TEMP\` (i.e., `$env:TEMP\fanout-{DB_NAME}\workers\`, `$env:TEMP\fanout-{DB_NAME}\critics\`). The SKILL.md Stage 1 documents platform-adaptive creation commands.
+
 Output documents go directly to `docs/database_reference/{DB_NAME}/`.

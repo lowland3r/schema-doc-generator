@@ -30,7 +30,7 @@ You will receive one directory per database. Each directory contains text files 
 | `14_user_defined_types.txt` | Custom types |
 | `15_extended_properties.txt` | Table-level descriptions and metadata |
 | `16_row_counts.txt` | Row counts per table |
-| `17_lookup_data.txt` | Actual row data from tables with <100 rows (lookup/enum tables). Format: `--- TABLE: schema.table ---` delimiter between tables, followed by pipe-delimited rows. May be empty if no lookup tables exist or extraction did not include this step. |
+| `17_lookup_data.txt` | Actual row data from tables with <100 rows (lookup/enum tables). Format: pipe-delimited CSV rows with a synthetic `_table_header` first column. Rows where `_table_header` contains `TABLE: schema.table` are header rows identifying the start of a new table's data; rows with an empty or null `_table_header` are data rows for the preceding table. May be empty if no lookup tables exist or extraction did not include this step. |
 
 If the user provides the data in a different format (single file, JSON, pasted text), adapt accordingly. The section numbers and headers in the SQL script are sufficient to identify which data is which.
 
