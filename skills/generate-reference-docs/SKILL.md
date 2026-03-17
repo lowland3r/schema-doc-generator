@@ -31,8 +31,8 @@ Calculate total byte size of all 17 input files:
 wc -c references/databases/{DB_NAME}/*.txt | tail -1
 ```
 
-- **<50KB total**: Use single-pass generation (this section). Report: "Corpus size: {size}. Using single-pass generation."
-- **>=50KB total**: Use fan-out generation (see Fan-Out Path section below). **Fan-out is not yet implemented — proceeding with single-pass. Quality may be lower for very large databases. Notify the user of this limitation before dispatching the agent.** Report: "Corpus size: {size}. Using single-pass generation (corpus exceeds 50KB — quality may be lower; fan-out is not yet implemented)."
+- **<50KB total**: Use single-pass generation (Step 3). Report: "Corpus size: {size}. Using single-pass generation."
+- **>=50KB total**: Use fan-out generation (Fan-Out Path section below). Report: "Corpus size: {size}. Using fan-out generation with parallel workers, critics, and summarizer."
 
 ## Step 3: Single-Pass Generation
 
@@ -95,6 +95,67 @@ Report to the user:
 - Highlight that `07_annotations_needed.md` contains questions for human review
 - Note any files that the agent could not generate
 
-## Fan-Out Path
+## Fan-Out Path (corpus >=50KB)
 
-**Not yet implemented.** For corpora >=50KB, this skill will be extended in a later phase to use parallel workers, critics, and a summarizer. Currently, corpora >=50KB will still attempt single-pass (with a warning that quality may be lower for very large databases).
+When the corpus exceeds 50KB, use the fan-out layout defined in this skill's `fanout-layout.md` companion file.
+
+### Stage 1: Setup
+
+Create the temporary working directory. Use a platform-appropriate temp path (`/tmp/` on Unix, `$env:TEMP` or `C:\tmp\` on Windows):
+```bash
+mkdir -p /tmp/fanout-{DB_NAME}/workers /tmp/fanout-{DB_NAME}/critics
+```
+
+### Stage 2: Launch Workers (parallel)
+
+Read the job spec from `job-spec.md`. Launch both workers simultaneously using the Agent tool — issue both calls in a single message for parallel execution:
+
+**W01 prompt template:**
+- Role: "You are Worker W01"
+- Segments: S01 (00_overview.md), S02 (01_type_reference.md), S03 (02_tables/ directory)
+- Instructions: Read all 17 input files. Follow the job spec. Generate only your assigned output documents.
+- Writing style: Activate `ed3d-house-style:writing-for-a-technical-audience` before generating output. Be concise, specific, and honest. No filler or AI writing patterns.
+- Output path: `docs/database_reference/{DB_NAME}/`
+- Report path: `/tmp/fanout-{DB_NAME}/workers/W01.md`
+
+**W02 prompt template:**
+- Role: "You are Worker W02"
+- Segments: S04 (03_stored_procedures.md), S05 (04_views.md + 05_functions.md), S06 (06_business_logic.md + 07_annotations_needed.md)
+- Same input/output paths
+- Report path: `/tmp/fanout-{DB_NAME}/workers/W02.md`
+
+Use `ed3d-basic-agents:opus-general-purpose` for both workers. Set `run_in_background: true`.
+
+### Stage 3: Launch Critics (parallel, after workers)
+
+After both workers complete, launch all 6 critics simultaneously. Each critic:
+- Reads the output documents for its assigned segments
+- Reads the relevant worker reports
+- Spot-checks against source input files
+- Checks writing quality against `ed3d-house-style:writing-for-a-technical-audience` principles (concise, specific, no filler)
+- Writes a structured review to `/tmp/fanout-{DB_NAME}/critics/C0X.md`
+
+Use `ed3d-basic-agents:sonnet-general-purpose` for all critics. Set `run_in_background: true`.
+
+**Optimization:** C03 only needs W01; C06 only needs W02. If one worker finishes first, launch its sole-dependency critics immediately.
+
+### Stage 4: Summarizer (sequential, after all critics)
+
+After all 6 critics complete, launch one summarizer:
+- Reads all 6 critic reviews
+- Builds deduplicated correction list
+- **2+ critics agree**: Apply correction directly
+- **1 critic flags**: Verify against source input files before applying
+- Applies corrections to output documents using Edit tool
+- Writes QA report to `/tmp/fanout-{DB_NAME}/final-report.md`
+
+Use `ed3d-basic-agents:opus-general-purpose`.
+
+### Stage 5: Report
+
+After summarizer completes, report to user:
+- List of generated files
+- Number of corrections applied
+- Corrections where critics disagreed
+- Open questions from `07_annotations_needed.md`
+- Location of full QA report
