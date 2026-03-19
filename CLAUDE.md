@@ -1,6 +1,6 @@
 # schema-doc-generator
 
-Last verified: 2026-03-17
+Last verified: 2026-03-19
 
 ## What This Is
 
@@ -36,3 +36,9 @@ Generated reference docs go to `docs/database_reference/{DB_NAME}/` with 8 outpu
 - Commands are thin: each just invokes its corresponding skill
 - The extraction script is generated but NOT executed by the plugin (human gate)
 - Skills activate `ed3d-house-style` sub-skills for coding and writing quality
+
+## Plugin-Dev Enforcement
+
+`plugin-dev-kit` is the active enforcement mechanism for plugin-dev skills in this repo. When writing or editing SKILL.md files, updating plugin.json, or writing documentation for this plugin, those skills activate contextually — no explicit invocation required.
+
+Install at user level: `claude plugin install https://github.com/lowland3r/plugin-dev-kit`
