@@ -1,7 +1,7 @@
 ---
 name: plan-schema-docs
 description: Use when you need to walk through the full database documentation pipeline from extraction to reference doc generation — orchestrates skills with human gates between stages
-user-invocable: false
+user-invocable: true
 ---
 
 # Database Documentation Pipeline
@@ -9,6 +9,8 @@ user-invocable: false
 Walk through the complete database schema documentation process: extraction script generation, schema extraction (user-executed), validation, and reference doc generation.
 
 ## Stage 1: Setup
+
+Check if a hints file path was provided in arguments (e.g., `/schema-docs path/to/database-hints.json`). If a path is present, record it for use in Stage 2.
 
 Gather database details from the user if not already provided:
 - Database engine (currently MSSQL only)
@@ -25,6 +27,12 @@ Use the Skill tool to invoke the `generate-extraction-script` skill. This will:
 - Generate the appropriate extraction script
 - Create the target directory with placeholder files
 - Present the script to the user
+
+If a hints file path was recorded in Stage 1, pass it as the argument when invoking the skill:
+
+    ARGUMENTS: [hints file path]
+
+If no hints path was provided, invoke the skill with no arguments.
 
 **The skill handles all interaction with the user for this stage.**
 
