@@ -1,7 +1,7 @@
 ---
 name: generate-reference-docs
 description: Use when you have populated schema extraction files and need to generate structured reference documentation — adaptively chooses single-pass or fan-out based on corpus size
-user-invocable: false
+user-invocable: true
 ---
 
 # Generate Reference Docs
@@ -66,7 +66,7 @@ Create the `02_tables/` subdirectory for per-domain table files.
 
 ## Writing Style
 
-Before generating any output, activate the `ed3d-house-style:writing-for-a-technical-audience` skill using the Skill tool. Apply its guidance to all generated reference documents — be concise, specific, and honest. Avoid filler, throat-clearing, and AI writing patterns.
+All output must be written for a technical audience — concise, specific, and factual. Avoid filler, throat-clearing, and AI writing patterns.
 
 ## Important
 
@@ -137,7 +137,7 @@ S02: Write docs/database_reference/{DB_NAME}/01_type_reference.md
 S03: Write all files in docs/database_reference/{DB_NAME}/02_tables/ (one file per domain)
 
 ## Writing Style
-Activate the ed3d-house-style:writing-for-a-technical-audience skill. Apply it to all output.
+All output must be written for a technical audience — concise, specific, and factual. Avoid filler, throat-clearing, and AI writing patterns.
 
 ## Report
 When done, write your completion summary to /tmp/fanout-{DB_NAME}/workers/W01.md
@@ -168,7 +168,7 @@ S05: Write docs/database_reference/{DB_NAME}/04_views.md and 05_functions.md
 S06: Write docs/database_reference/{DB_NAME}/06_business_logic.md and 07_annotations_needed.md
 
 ## Writing Style
-Activate the ed3d-house-style:writing-for-a-technical-audience skill. Apply it to all output.
+All output must be written for a technical audience — concise, specific, and factual. Avoid filler, throat-clearing, and AI writing patterns.
 
 ## Report
 When done, write your completion summary to /tmp/fanout-{DB_NAME}/workers/W02.md
@@ -185,7 +185,7 @@ After both workers complete, launch all 6 critics simultaneously. Each critic:
 - Reads the output documents for its assigned segments
 - Reads the relevant worker reports
 - Spot-checks against source input files
-- Checks writing quality against `ed3d-house-style:writing-for-a-technical-audience` principles (concise, specific, no filler)
+- Checks writing quality: output must be concise, specific, and factual — no filler or AI writing patterns
 - Writes a structured review to `/tmp/fanout-{DB_NAME}/critics/C0X.md`
 
 Use `ed3d-basic-agents:sonnet-general-purpose` for all critics. Set `run_in_background: true`.
@@ -204,7 +204,7 @@ Review these output documents: S01 (00_overview.md), S05 (04_views.md + 05_funct
 
 Read the relevant worker reports from /tmp/fanout-{DB_NAME}/workers/. Spot-check against the original source files in references/databases/{DB_NAME}/.
 
-Check writing quality against ed3d-house-style:writing-for-a-technical-audience principles.
+Check writing quality: output must be concise, specific, and factual — no filler or AI writing patterns.
 
 Write your structured review to /tmp/fanout-{DB_NAME}/critics/C01.md. For each issue: note the file, quote the problematic text, state the correction, and note whether you verified against source.
 </parameter>
