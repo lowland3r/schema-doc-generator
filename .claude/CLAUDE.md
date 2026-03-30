@@ -27,6 +27,9 @@ The extraction skill produces 17 pipe-delimited text files in `references/databa
 ### Output Structure
 Generated reference docs go to `docs/database_reference/{DB_NAME}/` with 8 output targets including a `02_tables/` subdirectory for per-domain table files.
 
+### Hints File (database-hints.json)
+Optional JSON file with a `databases` array. Each entry has a `name` and `tables` array where tables may have `probable_lookup: true`. When provided, the extraction skill uses the explicit table list for section 17 instead of the row-count heuristic. Matched to the target database by case-insensitive substring match on the `name` field.
+
 ### Generation Paths
 - Corpus <50KB: single-pass (one agent)
 - Corpus >=50KB: fan-out (2 workers, 6 critics, 1 summarizer)
@@ -35,7 +38,7 @@ Generated reference docs go to `docs/database_reference/{DB_NAME}/` with 8 outpu
 - Skills are prompt-only (no executable code besides the SQL template)
 - Commands are thin: each just invokes its corresponding skill
 - The extraction script is generated but NOT executed by the plugin (human gate)
-- Skills activate `ed3d-house-style` sub-skills for coding and writing quality
+- Writing style guidance is inlined in skill prompts (concise, specific, factual)
 
 ## Skill Contracts
 
@@ -45,11 +48,12 @@ Contracts and invariants for each skill, consolidated from former per-skill CLAU
 
 - **Exposes**: Invoked by `/extract-schema` command and `plan-schema-docs` pipeline
 - **Guarantees**: Produces a PowerShell or sqlcmd script targeting the 17-file output format. Creates target directory with empty placeholder files before user runs extraction.
-- **Expects**: User provides database engine (MSSQL only), server/instance, and database name
+- **Expects**: User provides database engine (MSSQL only), server/instance, and database name. Optionally accepts a `database-hints.json` path via arguments.
 - **Boundary**: Does not execute database queries. Does not consume extraction output.
 - **Invariants**:
   - Output file names are `{NN}_{snake_name}.txt` (01 through 17), never changed
   - Section 17 (lookup data) uses synthetic `_table_header` column for table delimiters
+  - Section 17 has two paths: hints-driven (explicit table list from `database-hints.json`) or heuristic (row-count < 100). Hints replace the cursor WHERE clause; cursor structure and `_table_header` injection are preserved either way.
   - Only MSSQL templates exist; new engines require new `templates/{engine}.sql`
 
 ### generate-reference-docs
@@ -67,7 +71,7 @@ Contracts and invariants for each skill, consolidated from former per-skill CLAU
 
 - **Exposes**: Invoked by `/schema-docs` command
 - **Guarantees**: Walks through 6 stages in order. Never skips the human gate (Stage 3). Validates extraction files before generation.
-- **Expects**: User provides database engine, server, and database name at Stage 1
+- **Expects**: User provides database engine, server, and database name at Stage 1. Optionally accepts a hints file path as argument, which is forwarded to the extraction skill.
 - **Boundary**: Orchestrates only; does not generate scripts or documents itself
 - **Invariants**:
   - Stages execute in order: setup, extraction, human gate, validation, generation, summary
