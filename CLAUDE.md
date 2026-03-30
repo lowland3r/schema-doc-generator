@@ -1,6 +1,6 @@
 # schema-doc-generator
 
-Last verified: 2026-03-19
+Last verified: 2026-03-30
 
 ## What This Is
 
@@ -11,7 +11,7 @@ Requires the `ed3d-basic-agents` plugin for fan-out generation workers.
 ## Plugin Structure
 - `.claude-plugin/plugin.json` - Plugin manifest (v0.1.0)
 - `commands/` - User-facing slash commands (thin wrappers that invoke skills)
-- `skills/` - Implementation logic (3 skills with bundled companion files)
+- `skills/` - Implementation logic (3 skills with bundled resources)
 - `docs/` - Design plans, implementation plans (not generated output)
 
 ## Commands
@@ -37,8 +37,39 @@ Generated reference docs go to `docs/database_reference/{DB_NAME}/` with 8 outpu
 - The extraction script is generated but NOT executed by the plugin (human gate)
 - Skills activate `ed3d-house-style` sub-skills for coding and writing quality
 
-## Plugin-Dev Enforcement
+## Skill Contracts
 
-`plugin-dev-kit` is the active enforcement mechanism for plugin-dev skills in this repo. When writing or editing SKILL.md files, updating plugin.json, or writing documentation for this plugin, those skills activate contextually — no explicit invocation required.
+Contracts and invariants for each skill, consolidated from former per-skill CLAUDE.md companions.
 
-Install at user level: `claude plugin install https://github.com/lowland3r/plugin-dev-kit`
+### generate-extraction-script
+
+- **Exposes**: Invoked by `/extract-schema` command and `plan-schema-docs` pipeline
+- **Guarantees**: Produces a PowerShell or sqlcmd script targeting the 17-file output format. Creates target directory with empty placeholder files before user runs extraction.
+- **Expects**: User provides database engine (MSSQL only), server/instance, and database name
+- **Boundary**: Does not execute database queries. Does not consume extraction output.
+- **Invariants**:
+  - Output file names are `{NN}_{snake_name}.txt` (01 through 17), never changed
+  - Section 17 (lookup data) uses synthetic `_table_header` column for table delimiters
+  - Only MSSQL templates exist; new engines require new `templates/{engine}.sql`
+
+### generate-reference-docs
+
+- **Exposes**: Invoked by `/generate-docs` command and `plan-schema-docs` pipeline
+- **Guarantees**: Produces 8 output targets in `docs/database_reference/{DB_NAME}/`. Adaptively selects single-pass (<50KB) or fan-out (>=50KB) based on corpus size.
+- **Expects**: 17 extraction files in `references/databases/{DB_NAME}/`. Files 01-03 and 16 are critical; others may be empty.
+- **Boundary**: Does not create extraction files. Does not connect to databases.
+- **Invariants**:
+  - All 17 input files are read before any output is generated (Rule 1 in job-spec)
+  - Output files never fabricate data; unknowns go to `07_annotations_needed.md`
+  - Fan-out temp files go to platform-appropriate temp directory, not the repo
+
+### plan-schema-docs
+
+- **Exposes**: Invoked by `/schema-docs` command
+- **Guarantees**: Walks through 6 stages in order. Never skips the human gate (Stage 3). Validates extraction files before generation.
+- **Expects**: User provides database engine, server, and database name at Stage 1
+- **Boundary**: Orchestrates only; does not generate scripts or documents itself
+- **Invariants**:
+  - Stages execute in order: setup, extraction, human gate, validation, generation, summary
+  - Pipeline never auto-executes database queries
+  - Fan-out QA report path referenced in Stage 6 comes from the generation skill's own output
