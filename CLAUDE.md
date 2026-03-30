@@ -9,7 +9,7 @@ A Claude Code plugin that automates database schema extraction and reference doc
 Requires the `ed3d-basic-agents` plugin for fan-out generation workers.
 
 ## Plugin Structure
-- `.claude-plugin/plugin.json` - Plugin manifest (v0.1.0)
+- `.claude-plugin/plugin.json` - Plugin manifest (v0.2.0)
 - `commands/` - User-facing slash commands (thin wrappers that invoke skills)
 - `skills/` - Implementation logic (3 skills with bundled resources)
 - `docs/` - Design plans, implementation plans (not generated output)
